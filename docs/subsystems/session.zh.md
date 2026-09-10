@@ -156,6 +156,28 @@ interface SessionEventMap {
    * so tolerating concurrent writers needs a signal beyond the log.
    */
   'session/end-seed': { inherited?: true }
+  /**
+   * One accepted quarantine transition: a content-addressed image attachment
+   * became unreadable and was quarantined so later reads skip its
+   * `AttachmentStore.readImage()`. Log-only (not a {@link SurfaceEventType}:
+   * no `surfaceOp`, no derived message); the quarantine projection consumes it.
+   */
+  'attachment/quarantine': {
+    /** Stable content-addressed id of the quarantined attachment (e.g. `sha256:…`). */
+    attachmentId: string
+    /** Failure category: missing, corrupt, or read failed. Unclassified failures do not enter this event. */
+    category: 'NOT_FOUND' | 'CORRUPT' | 'READ_FAILED'
+    /** `true` only for `READ_FAILED` (the retryable path); `NOT_FOUND`/`CORRUPT` are `false`. */
+    retryable: boolean
+  }
+  /**
+   * One accepted recovery: the attachment passed its verification again and is
+   * no longer quarantined. Log-only (not a {@link SurfaceEventType}).
+   */
+  'attachment/recovered': {
+    /** Stable content-addressed id of the recovered attachment. */
+    attachmentId: string
+  }
 }
 ```
 
