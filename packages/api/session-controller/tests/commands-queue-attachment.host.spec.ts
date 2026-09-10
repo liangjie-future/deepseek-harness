@@ -417,21 +417,46 @@ describe('Session attachment authorization', () => {
       sessionId: SessionId('missing'), attachmentId: 'att' as never,
     }), 'session/not-found')
 
-    for (const thrown of [
-      new AttachmentError('stored image is unavailable', 'ATTACHMENT_NOT_FOUND'),
-      new Error('backend offline'),
-    ]) {
-      const ref = imageRef(`failure-${thrown.name}`)
+    for (const [code, expected] of [
+      ['ATTACHMENT_NOT_FOUND', 'session/attachment-invalid'],
+      ['ATTACHMENT_CORRUPT', 'session/attachment-invalid'],
+      ['ATTACHMENT_READ_FAILED', 'session/attachment-invalid'],
+    ] as const) {
+      const ref = imageRef(`failure-${code}`)
       const fixture = await persistedController(
         [event('fixture/content', SessionSeq(0), { content: [{ type: 'image', attachment: ref }] })],
-        () => Promise.reject(thrown),
+        () => Promise.reject(new AttachmentError(`stored image ${code}`, code)),
       )
       await expectFailure(fixture.controller.attachment({
         sessionId: fixture.sessionId,
         attachmentId: ref.attachmentId,
-      }), thrown instanceof AttachmentError ? 'session/attachment-invalid' : 'gateway/internal')
+      }), expected)
       await fixture.ctx.fiber.dispose()
     }
+
+    const unclassified = imageRef('failure-unclassified')
+    const unclassifiedFixture = await persistedController(
+      [event('fixture/content', SessionSeq(0), { content: [{ type: 'image', attachment: unclassified }] })],
+      () => Promise.reject(new Error('backend offline')),
+    )
+    await expectFailure(unclassifiedFixture.controller.attachment({
+      sessionId: unclassifiedFixture.sessionId,
+      attachmentId: unclassified.attachmentId,
+    }), 'gateway/internal')
+    await unclassifiedFixture.ctx.fiber.dispose()
+
+    // Classification keys on the error `code`, not the class prototype, so a
+    // structurally compatible failure from another package copy maps the same.
+    const foreign = imageRef('failure-foreign')
+    const foreignFixture = await persistedController(
+      [event('fixture/content', SessionSeq(0), { content: [{ type: 'image', attachment: foreign }] })],
+      () => Promise.reject(Object.assign(new Error('missing elsewhere'), { code: 'ATTACHMENT_NOT_FOUND' })),
+    )
+    await expectFailure(foreignFixture.controller.attachment({
+      sessionId: foreignFixture.sessionId,
+      attachmentId: foreign.attachmentId,
+    }), 'session/attachment-invalid')
+    await foreignFixture.ctx.fiber.dispose()
   })
 
   it('maps a cold observation failure to an internal authorization error', async () => {

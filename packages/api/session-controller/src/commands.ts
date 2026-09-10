@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import type { Agent, ModelSelection as AgentModelSelection } from '@deepseek-ai/dsh-agent'
-import { AttachmentError } from '@deepseek-ai/dsh-attachment'
+import { isAttachmentError } from '@deepseek-ai/dsh-attachment'
 import type {
   AttachmentAdmissionPart, FileAttachmentRef, ImageAttachmentRef,
 } from '@deepseek-ai/dsh-attachment'
@@ -365,7 +365,7 @@ export class SessionCommandController {
         binding.commit()
       } catch (error) {
         if (remoteErrorOf(error) !== undefined) throw error
-        if (error instanceof AttachmentError) {
+        if (isAttachmentError(error)) {
           throw new RemoteError('session/attachment-invalid', error.message, { reason: error.code })
         }
         throw new RemoteError('session/agent-busy', 'prompt rejected', { reason: String(error) })
@@ -409,7 +409,7 @@ export class SessionCommandController {
         data: Buffer.from(stored.data).toString('base64'),
       }
     } catch (error) {
-      if (error instanceof AttachmentError) {
+      if (isAttachmentError(error)) {
         throw new RemoteError('session/attachment-invalid', error.message, { reason: error.code })
       }
       throw new RemoteError('gateway/internal', 'Unable to read image attachment.', {})
