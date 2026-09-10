@@ -3,7 +3,7 @@
 import type { ContentBlock } from './types.ts'
 import type { Message } from './message.ts'
 import type {
-  AttachmentStore, FileAttachmentRef, ImageAttachmentRef, ImageMediaType, RequestImageAttachment,
+  AttachmentId, AttachmentStore, FileAttachmentRef, ImageAttachmentRef, ImageMediaType, RequestImageAttachment,
 } from '@deepseek-ai/dsh-attachment'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 
@@ -45,6 +45,11 @@ function quoted(value: string): string {
   return JSON.stringify(value)
 }
 
+/** First eight hex digits of a content-addressed attachment id, after its `sha256:` scheme. */
+function attachmentIdPrefix(attachmentId: AttachmentId): string {
+  return String(attachmentId).slice('sha256:'.length, 'sha256:'.length + 8)
+}
+
 function imageIdentity(ref: ImageAttachmentRef): string {
   return ref.name === undefined
     ? String(ref.attachmentId)
@@ -73,8 +78,25 @@ function normalizedAccessText(ref: ImageAttachmentRef, access: ImageAttachmentAc
  * @returns deterministic text-only placeholder.
  */
 export function textOnlyImageText(ref: ImageAttachmentRef): string {
-  const digest = String(ref.attachmentId).slice('sha256:'.length, 'sha256:'.length + 8)
-  return `[image omitted because this model accepts text only; attachment sha256:${digest}]`
+  return `[image omitted because this model accepts text only; attachment sha256:${attachmentIdPrefix(ref.attachmentId)}]`
+}
+
+/** Unreadable-attachment failure classes a quarantine placeholder can name. */
+export type QuarantineCategory = 'NOT_FOUND' | 'CORRUPT' | 'READ_FAILED'
+
+/**
+ * Deterministic model-visible replacement for one unreadable image attachment,
+ * built solely from its reference and failure category so the same quarantined
+ * request reconstructs byte-for-byte after restart or fork. Order and separators
+ * are fixed: display name when present, then the content-addressed id prefix,
+ * then the failure category.
+ * @param ref - durable normalized attachment whose underlying object is unreadable.
+ * @param category - classified read failure (`NOT_FOUND`, `CORRUPT`, or `READ_FAILED`).
+ * @returns stable placeholder text with no random, clock, or environment input.
+ */
+export function quarantinePlaceholder(ref: ImageAttachmentRef, category: QuarantineCategory): string {
+  const name = ref.name === undefined ? '' : `${quoted(ref.name)} `
+  return `[image unavailable: ${name}sha256:${attachmentIdPrefix(ref.attachmentId)} (${category})]`
 }
 
 /**
@@ -152,8 +174,7 @@ export function contentHasFile(content: readonly ContentBlock[]): boolean {
  * @returns deterministic handle text naming the file, its size, and its address.
  */
 export function fileHandleText(ref: FileAttachmentRef, readonlyPath: string | undefined): string {
-  const digest = String(ref.attachmentId).slice('sha256:'.length, 'sha256:'.length + 8)
-  const identity = `File ${quoted(ref.name)} (${ref.bytes} bytes, sha256:${digest})`
+  const identity = `File ${quoted(ref.name)} (${ref.bytes} bytes, sha256:${attachmentIdPrefix(ref.attachmentId)})`
   if (readonlyPath === undefined) {
     return `[${identity} was uploaded, but the current execution environment cannot access a readable path. Report that limitation if its contents are needed; do not claim to have read it.]`
   }

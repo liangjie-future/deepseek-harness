@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/test-cases/quarantine-placeholder.md
+quarantine-placeholder.md: 7eebc4da44ad883bb1ed596ef184c145efeec715
+quarantine-placeholder.zh.md: 67a99936027ff86b4d0aac535894b133c16d6b0a
