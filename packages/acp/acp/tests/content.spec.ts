@@ -216,10 +216,13 @@ describe('ACP rich content codec', () => {
     const noStore = admissionFixture({ attachments: false })
     await expect(assistantBlockToAcp(noStore.ctx, { type: 'image', attachment: REF }))
       .rejects.toThrow(/no attachment store/)
-    const readImage = vi.fn().mockRejectedValue(new AttachmentError('gone', 'ATTACHMENT_NOT_FOUND'))
-    const missingCtx = { get: (name: string) => name === 'attachments' ? { readImage } : undefined } as unknown as Context
-    await expect(assistantBlockToAcp(missingCtx, { type: 'image', attachment: REF }))
-      .rejects.toThrow(/unavailable or corrupt/)
+    for (const code of ['ATTACHMENT_NOT_FOUND', 'ATTACHMENT_CORRUPT', 'ATTACHMENT_READ_FAILED'] as const) {
+      const readImage = vi.fn().mockRejectedValue(new AttachmentError('gone', code))
+      const missingCtx = { get: (name: string) => name === 'attachments' ? { readImage } : undefined } as unknown as Context
+      const failure = assistantBlockToAcp(missingCtx, { type: 'image', attachment: REF })
+      await expect(failure).rejects.toMatchObject({ kind: 'internal' })
+      await expect(failure).rejects.toThrow(/cannot deliver assistant image: the attachment is unavailable or corrupt/)
+    }
     const storedCtx = {
       get: (name: string) => name === 'attachments'
         ? { readImage: vi.fn().mockResolvedValue({ ref: REF, data: Uint8Array.of(1) }) }

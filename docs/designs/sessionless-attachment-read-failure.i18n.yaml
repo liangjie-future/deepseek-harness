@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/designs/sessionless-attachment-read-failure.md
+sessionless-attachment-read-failure.md: 1c567c5e19601440d7b30217e140e6c1e4f26b4a
+sessionless-attachment-read-failure.zh.md: 966b41fa3a972f5a20dbe9e2aac2cde274e4cffc
