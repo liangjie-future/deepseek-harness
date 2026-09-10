@@ -148,6 +148,7 @@ describe('package dependency scope', () => {
       '@deepseek-ai/dsh-util-crypto',
       '@deepseek-ai/dsh-util-values',
     ])
+    expect(PACKAGE_DEPENDENCY_POLICY.safeHostDependencyExports['@deepseek-ai/dsh-attachment']).toEqual(['isAttachmentError'])
     expect(PACKAGE_DEPENDENCY_POLICY.safeHostDependencyExports['@deepseek-ai/dsh-deque']).toEqual(['Deque'])
     expect(PACKAGE_DEPENDENCY_POLICY.safeHostDependencyExports['@deepseek-ai/schemastery']).toEqual(['default'])
     expect(PACKAGE_DEPENDENCY_POLICY.safeHostDependencyExports['@deepseek-ai/dsh-session/types']).toBeUndefined()
