@@ -83,7 +83,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }[T]
 ```
 
-Sources: [`packages/core/session/src/types.ts:404`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:412`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:434`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:465`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:426`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:434`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:456`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:487`](../packages/core/session/src/types.ts)
 
 ## Events
 
@@ -241,6 +241,48 @@ Source: [`packages/core/session/src/types.ts:335`](../packages/core/session/src/
 Types: [TokenUsage](subsystems/llm-streaming.md)
 
 Source: [`packages/core/session/src/types.ts:321`](../packages/core/session/src/types.ts)
+
+### `attachment/*`
+
+<a id="attachmentquarantine--log-only"></a>
+
+#### `attachment/quarantine` — log-only
+
+```ts persistence-catalog
+/**
+ * One accepted quarantine transition: a content-addressed image attachment
+ * became unreadable and was quarantined so later reads skip its
+ * `AttachmentStore.readImage()`. Log-only (not a {@link SurfaceEventType}:
+ * no `surfaceOp`, no derived message); the quarantine projection consumes it.
+ */
+'attachment/quarantine': {
+  /** Stable content-addressed id of the quarantined attachment (e.g. `sha256:…`). */
+  attachmentId: string
+  /** Failure category: missing, corrupt, or read failed. Unclassified failures do not enter this event. */
+  category: 'NOT_FOUND' | 'CORRUPT' | 'READ_FAILED'
+  /** `true` only for `READ_FAILED` (the retryable path); `NOT_FOUND`/`CORRUPT` are `false`. */
+  retryable: boolean
+}
+```
+
+Source: [`packages/core/session/src/types.ts:407`](../packages/core/session/src/types.ts)
+
+<a id="attachmentrecovered--log-only"></a>
+
+#### `attachment/recovered` — log-only
+
+```ts persistence-catalog
+/**
+ * One accepted recovery: the attachment passed its verification again and is
+ * no longer quarantined. Log-only (not a {@link SurfaceEventType}).
+ */
+'attachment/recovered': {
+  /** Stable content-addressed id of the recovered attachment. */
+  attachmentId: string
+}
+```
+
+Source: [`packages/core/session/src/types.ts:419`](../packages/core/session/src/types.ts)
 
 ### `command/*`
 
